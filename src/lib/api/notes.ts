@@ -1,4 +1,4 @@
-import type {Note} from "../types";
+import type {Note, SearchResult} from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -17,6 +17,24 @@ export async function findNoteById(id: number): Promise<Note> {
 
     if (!response.ok) {
         throw new Error(`Failed to fetch note with id ${id}`);
+    }
+
+    return response.json();
+}
+
+export async function searchNotes(query: string): Promise<SearchResult> {
+    const response = await fetch(
+        `${API_BASE}/notes/search?query=${encodeURIComponent(query)}`,
+        {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(`Search failed: ${response.status}`);
     }
 
     return response.json();

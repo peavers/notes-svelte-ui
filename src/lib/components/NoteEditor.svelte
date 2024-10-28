@@ -4,6 +4,7 @@
     import type {Note} from '../types';
     import {debounce} from '../utils/debounce';
     import NoteHeader from './NoteHeader.svelte';
+    import ActionBar from "./ActionBar.svelte";
 
     export let note: Note;
 
@@ -76,10 +77,14 @@
     });
 </script>
 
+<NoteHeader {note} on:update={handleTitleUpdate}/>
+
 <div class="note-editor">
-    <NoteHeader {note} on:update={handleTitleUpdate}/>
     <div bind:this={editorElement}></div>
 </div>
+
+<ActionBar {editorElement}/>
+
 
 <style>
     .note-editor {

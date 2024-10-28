@@ -1,12 +1,11 @@
 <script lang="ts">
-    import {fade, slide} from 'svelte/transition';
+    import {slide} from 'svelte/transition';
     import {createEventDispatcher} from 'svelte';
-    import type {Note} from '../types';
+    import type {Note, SearchResult} from '../types';
     import {debounce} from "../utils/debounce";
+    import {searchNotes} from "../api/notes";
 
     export let onNoteSelect: (note: Note) => void;
-
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
     const dispatch = createEventDispatcher<{
         search: string;
@@ -15,15 +14,7 @@
     let searchQuery = '';
     let isLoading = false;
     let isDropdownOpen = false;
-    let searchResults: {
-        notes: Note[];
-        highlights: Record<number, {
-            titleHighlight: string;
-            contentHighlight: string;
-            rank: number;
-        }>;
-    } | null = null;
-
+    let searchResults: SearchResult | null = null;
     let searchInput: HTMLInputElement;
 
     // Debounced search function
@@ -36,21 +27,7 @@
 
         try {
             isLoading = true;
-            const response = await fetch(
-                `${API_BASE}/notes/search?query=${encodeURIComponent(query)}`,
-                {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`Search failed: ${response.status}`);
-            }
-
-            searchResults = await response.json();
+            searchResults = await searchNotes(query);
             isDropdownOpen = searchResults.notes.length > 0;
         } catch (error) {
             console.error('Search error:', error);
@@ -157,11 +134,10 @@
         </div>
     {/if}
 </div>
-
 <style>
     .search-container {
         position: relative;
-        max-width: 600px;
+        width: 100%;
         margin: 0 auto;
         z-index: 100;
     }
@@ -176,7 +152,7 @@
         padding: 0.75rem 1rem;
         padding-left: 2.75rem;
         border: 1px solid var(--border-color, #e2e8f0);
-        border-radius: 12px;
+        border-radius: 6px;
         font-size: 1rem;
         background: white;
         transition: all 0.2s ease;

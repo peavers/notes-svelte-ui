@@ -3,6 +3,7 @@
     import {notes} from '../stores/notesStore';
     import {findAllNotes} from '../api/notes';
     import type {Note} from '../types';
+    import SearchBar from "./SearchBar.svelte";
 
     export let selectedNoteId: number | null = null;
     export let onNoteSelect: (note: Note) => void;
@@ -41,9 +42,16 @@
     }
 
     onMount(loadNotes);
+
+    function handleNoteSelect(note: Note) {
+        onNoteSelect(note);
+    }
 </script>
 
 <aside class="sidebar">
+
+    <SearchBar onNoteSelect={handleNoteSelect}/>
+
     <div class="notes-list">
         {#if isLoading}
             <div class="loading-state">
@@ -100,7 +108,7 @@
 <style>
     .sidebar {
         width: 300px;
-        height: 100vh;
+        margin-right: 20px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -109,7 +117,7 @@
     .notes-list {
         flex: 1;
         overflow-y: auto;
-        padding: 0.5rem;
+        margin-top: 10px;
     }
 
     .note-item {

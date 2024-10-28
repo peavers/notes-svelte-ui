@@ -1,6 +1,6 @@
 <script lang="ts">
-    import type { Note } from '../types';
-    import { createEventDispatcher } from 'svelte';
+    import type {Note} from '../types';
+    import {createEventDispatcher} from 'svelte';
 
     export let note: Note;
 
@@ -12,7 +12,7 @@
 
     function handleTitleChange(newTitle: string) {
         title = newTitle;
-        dispatch('update', { title: newTitle });
+        dispatch('update', {title: newTitle});
     }
 
     $: if (note) {
@@ -36,11 +36,10 @@
     .note-header {
         position: sticky;
         background: white;
-        border-bottom: 1px solid #eee;
     }
 
     .title-container {
-        padding: 1rem;
+        padding: 20px 7px;
     }
 
     .title-input {
@@ -50,7 +49,8 @@
         border: none;
         background: transparent;
         width: 100%;
-        padding: 0;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
     }
 
     .title-input:focus {
@@ -59,7 +59,7 @@
 
     :global(.ql-toolbar.ql-snow) {
         border: none !important;
-        padding: 0.5rem 1rem !important;
+        padding: 10px 7px !important;
         border-bottom: 1px solid #eee;
         background: white;
     }

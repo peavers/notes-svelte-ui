@@ -4,10 +4,9 @@
     import {createNote, deleteNote, findAllNotes, updateNote} from "./lib/api/notes";
     import {notes} from "./lib/stores/notesStore";
     import {onMount} from "svelte";
-    import Sidebar from "./lib/components/Sidebar.svelte";
+    import Sidebar from "./lib/components/SideBar.svelte";
     import NoteEditor from "./lib/components/NoteEditor.svelte";
     import ActionBar from "./lib/components/ActionBar.svelte";
-    import SearchBar from "./lib/components/SearchBar.svelte";
 
     let selectedNote: Note | null = null;
     let error: string | null = null;
@@ -64,6 +63,11 @@
         try {
             const fetchedNotes = await findAllNotes();
             notes.set(fetchedNotes);
+
+            // Select the first note if there are notes and none is currently selected
+            if (fetchedNotes.length > 0 && !selectedNote) {
+                selectedNote = fetchedNotes[0];
+            }
         } catch (e) {
             error = 'Failed to load notes';
         }
@@ -74,14 +78,9 @@
 <div class="app-container">
     <main class="main-content">
         <div class="app-layout">
-            <Sidebar
-                    selectedNoteId={selectedNote?.id}
-                    onNoteSelect={handleNoteSelect}
-            />
+            <Sidebar selectedNoteId={selectedNote?.id} onNoteSelect={handleNoteSelect}/>
 
             <div class="editor-wrapper">
-                <SearchBar onNoteSelect={handleNoteSelect}/>
-
                 {#if error}
                     <div class="error" role="alert">
                         {error}
@@ -90,11 +89,7 @@
                 {/if}
 
                 {#if selectedNote}
-                    <NoteEditor
-                            note={selectedNote}
-                            on:update={handleUpdate}
-                            on:delete={handleDelete}
-                    />
+                    <NoteEditor note={selectedNote} on:update={handleUpdate} on:delete={handleDelete}/>
                 {:else}
                     <div class="empty-state">
                         <p>Select a note from the sidebar or create a new one</p>
@@ -104,11 +99,7 @@
         </div>
     </main>
 
-    <ActionBar
-            {selectedNote}
-            on:create={handleCreate}
-            on:delete={handleDelete}
-    />
+<!--    <ActionBar {selectedNote} on:create={handleCreate} on:delete={handleDelete}/>-->
 </div>
 
 <style>
