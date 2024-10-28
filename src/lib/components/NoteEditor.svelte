@@ -1,7 +1,9 @@
 <script lang="ts">
-    import {createEventDispatcher, onMount} from 'svelte';
+    import {createEventDispatcher, onDestroy, onMount} from 'svelte';
+    import Quill from 'quill';
     import type {Note} from '../types';
     import {debounce} from '../utils/debounce';
+    import NoteHeader from './NoteHeader.svelte';
 
     export let note: Note;
 
@@ -10,111 +12,77 @@
         delete: Note;
     }>();
 
-    // Initialize local state
-    let title = '';
-    let content = '';
+    let quill: Quill;
+    let editorElement: HTMLDivElement;
+    let isInitialized = false;
 
-    // Update local state when note prop changes
-    $: {
-        if (note) {
-            title = note.title;
-            content = note.content;
-        }
-    }
-
-    // Debounce the update to avoid too many API calls
-    const debouncedUpdate = debounce((updatedTitle: string, updatedContent: string) => {
-        if (!note) return;
-
+    const debouncedUpdate = debounce((title: string, content: string) => {
         dispatch('update', {
-            title: updatedTitle,
-            content: updatedContent
+            title,
+            content
         });
     }, 500);
 
-    $: if (title !== note?.title || content !== note?.content) {
-        debouncedUpdate(title, content);
+    function handleTitleUpdate(event: CustomEvent<{ title: string }>) {
+        if (quill) {
+            debouncedUpdate(event.detail.title, quill.root.innerHTML);
+        }
     }
+
+    onMount(() => {
+        const toolbarOptions = [
+            [{'font': []}],
+            [{'header': [1, 2, 3, 4, 5, 6, false]}],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{'color': []}, {'background': []}],
+            [{'list': 'ordered'}, {'list': 'bullet'}],
+            [{'align': []}],
+            ['blockquote', 'code-block'],
+            ['link', 'image'],
+            ['clean']
+        ];
+
+        quill = new Quill(editorElement, {
+            theme: 'snow',
+            placeholder: 'Compose an epic...',
+            modules: {
+                toolbar: toolbarOptions
+            }
+        });
+
+        if (note?.content) {
+            quill.root.innerHTML = note.content;
+        }
+
+        quill.on('text-change', () => {
+            debouncedUpdate(note.title, quill.root.innerHTML);
+        });
+
+        isInitialized = true;
+    });
+
+    $: if (isInitialized && note) {
+        if (quill && note.content !== quill.root.innerHTML) {
+            const selection = quill.getSelection();
+            quill.root.innerHTML = note.content;
+            if (selection) quill.setSelection(selection);
+        }
+    }
+
+    onDestroy(() => {
+        if (quill) {
+            quill = null;
+        }
+    });
 </script>
 
 <div class="note-editor">
-    <div class="editor-header">
-        <input
-                type="text"
-                bind:value={title}
-                class="title-input"
-                placeholder="Note title"
-        />
-    </div>
-
-    <textarea
-            bind:value={content}
-            class="content-input"
-            placeholder="Start writing..."
-            spellcheck="true">
-    </textarea>
+    <NoteHeader {note} on:update={handleTitleUpdate}/>
+    <div bind:this={editorElement}></div>
 </div>
 
 <style>
     .note-editor {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        background: white;
-    }
-
-    .editor-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-color, #e2e8f0);
-    }
-
-    .title-input {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: var(--text-primary, #1e293b);
-        border: none;
-        background: transparent;
-        width: 100%;
-        margin-right: 1rem;
-        padding: 0;
-    }
-
-    .title-input:focus {
-        outline: none;
-    }
-
-    .content-input {
-        flex: 1;
-        width: 100%;
-        padding: 1rem;
-        border: none;
-        resize: none;
-        font-size: 1rem;
-        line-height: 1.5;
-        color: var(--text-primary, #1e293b);
-        background: transparent;
-    }
-
-    .content-input:focus {
-        outline: none;
-    }
-
-    .delete-button {
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        border: none;
-        background: var(--error-bg, #fee2e2);
-        color: var(--error-text, #991b1b);
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .delete-button:hover {
-        background: #fecaca;
+        position: relative;
     }
 </style>
