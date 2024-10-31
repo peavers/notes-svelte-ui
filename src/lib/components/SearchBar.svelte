@@ -1,15 +1,11 @@
+<!-- src/lib/components/SearchBar.svelte -->
 <script lang="ts">
     import {slide} from 'svelte/transition';
-    import {createEventDispatcher} from 'svelte';
     import type {Note, SearchResult} from '../types';
     import {debounce} from "../utils/debounce";
     import {searchNotes} from "../api/notes";
 
     export let onNoteSelect: (note: Note) => void;
-
-    const dispatch = createEventDispatcher<{
-        search: string;
-    }>();
 
     let searchQuery = '';
     let isLoading = false;
@@ -17,8 +13,7 @@
     let searchResults: SearchResult | null = null;
     let searchInput: HTMLInputElement;
 
-    // Debounced search function
-    const performSearch = debounce(async (query: string) => {
+    async function performSearchRequest(query: string) {
         if (!query.trim()) {
             searchResults = null;
             isDropdownOpen = false;
@@ -36,10 +31,13 @@
         } finally {
             isLoading = false;
         }
-    }, 300);
+    }
+
+    // Use the utility debounce function
+    const debouncedSearch = debounce(performSearchRequest, 300);
 
     $: if (searchQuery) {
-        performSearch(searchQuery);
+        debouncedSearch(searchQuery);
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -59,11 +57,12 @@
         closeDropdown();
     }
 
-    // Click outside handler
     function handleClickOutside(event: MouseEvent) {
+        const target = event.target as Node;
         if (isDropdownOpen &&
             searchInput &&
-            !searchInput.contains(event.target as Node)) {
+            !searchInput.contains(target) &&
+            !(target.closest('.search-dropdown'))) {
             closeDropdown();
         }
     }
@@ -72,7 +71,7 @@
 <svelte:window on:click={handleClickOutside}/>
 
 <div class="search-container">
-    <div class="search-input-wrapper">
+    <div class="search-input-wrapper" role="search">
         <input
                 bind:this={searchInput}
                 bind:value={searchQuery}
@@ -80,10 +79,13 @@
                 type="search"
                 placeholder="Search notes..."
                 class="search-input"
+                aria-label="Search notes"
+                aria-expanded={isDropdownOpen}
+                aria-controls={isDropdownOpen ? 'search-results' : undefined}
         />
 
         {#if isLoading}
-            <div class="search-icon loading">
+            <div class="search-icon loading" aria-hidden="true">
                 <svg class="spinner" viewBox="0 0 24 24">
                     <circle
                             cx="12"
@@ -96,7 +98,7 @@
                 </svg>
             </div>
         {:else}
-            <div class="search-icon">
+            <div class="search-icon" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2">
                     <circle cx="11" cy="11" r="8"/>
@@ -106,34 +108,38 @@
         {/if}
     </div>
 
-    {#if isDropdownOpen && searchResults && searchResults.notes.length > 0}
+    {#if isDropdownOpen}
         <div
+                id="search-results"
                 class="search-dropdown"
+                class:empty={!searchResults?.notes.length}
                 transition:slide={{duration: 200}}
+                role="listbox"
         >
-            {#each searchResults.notes as note (note.id)}
-                <button
-                        class="search-result"
-                        on:click={() => handleNoteSelect(note)}
-                >
-                    <div class="result-title">
-                        {@html searchResults.highlights[note.id].titleHighlight || note.title}
-                    </div>
-                    <div class="result-preview">
-                        {@html searchResults.highlights[note.id].contentHighlight || note.content.substring(0, 100)}
-                    </div>
-                </button>
-            {/each}
-        </div>
-    {:else if isDropdownOpen && searchQuery}
-        <div
-                class="search-dropdown empty"
-                transition:slide={{duration: 200}}
-        >
-            <p>No results found</p>
+            {#if searchResults?.notes.length}
+                {#each searchResults.notes as note (note.id)}
+                    <button
+                            class="search-result"
+                            on:click={() => handleNoteSelect(note)}
+                            role="option"
+                    >
+                        <div class="result-title">
+                            {@html searchResults.highlights[note.id].titleHighlight || note.title || 'Untitled'}
+                        </div>
+                        {#if searchResults.highlights[note.id].contentHighlight || note.content}
+                            <div class="result-preview">
+                                {@html searchResults.highlights[note.id].contentHighlight || note.content.substring(0, 100)}
+                            </div>
+                        {/if}
+                    </button>
+                {/each}
+            {:else if searchQuery}
+                <p class="no-results">No results found</p>
+            {/if}
         </div>
     {/if}
 </div>
+
 <style>
     .search-container {
         position: relative;
@@ -232,10 +238,15 @@
     .search-dropdown.empty {
         padding: 2rem;
         text-align: center;
-        color: var(--text-secondary, #64748b);
     }
 
-    /* Style for highlighted text */
+    .no-results {
+        color: var(--text-secondary, #64748b);
+        text-align: center;
+        padding: 2rem;
+        margin: 0;
+    }
+
     :global(mark) {
         background: var(--highlight-bg, #fef08a);
         color: var(--text-primary, #1e293b);

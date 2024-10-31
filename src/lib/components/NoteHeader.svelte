@@ -1,18 +1,15 @@
+<!-- src/lib/components/NoteHeader.svelte -->
 <script lang="ts">
     import type {Note} from '../types';
-    import {createEventDispatcher} from 'svelte';
 
     export let note: Note;
-
-    const dispatch = createEventDispatcher<{
-        update: { title: string };
-    }>();
+    export let onTitleUpdate: (title: string) => void;
 
     let title = note?.title || '';
 
     function handleTitleChange(newTitle: string) {
         title = newTitle;
-        dispatch('update', {title: newTitle});
+        onTitleUpdate(newTitle);
     }
 
     $: if (note) {

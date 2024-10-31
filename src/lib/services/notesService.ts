@@ -1,26 +1,31 @@
-// src/lib/services/notesService.ts
 import type {Note} from '../types';
 import {notes} from '../stores/notesStore';
-import {createNote, deleteNote, findAllNotes, updateNote} from '../api/notes';
+import {createNote, deleteNote, findAllNoteTitles, findNoteById, updateNote} from '../api/notes';
 
 class NotesService {
-    async loadNotes(): Promise<Note[]> {
+    async loadNoteTitles(): Promise<void> {
         try {
-            const fetchedNotes = await findAllNotes();
-            notes.set(fetchedNotes);
-            return fetchedNotes;
+            const titlesList = await findAllNoteTitles();
+            notes.set(titlesList);
         } catch (error) {
             throw new Error('Failed to load notes');
         }
     }
 
+    async getNoteById(id: number): Promise<Note> {
+        try {
+            const fullNote = await findNoteById(id);
+            // Update the note in the store with full content
+            notes.updateNote(fullNote);
+            return fullNote;
+        } catch (error) {
+            throw new Error(`Failed to fetch note ${id}`);
+        }
+    }
+
     async createNote(): Promise<Note> {
         try {
-            const newNote = {
-                title: '',
-                content: ''
-            };
-
+            const newNote = {title: '', content: ''};
             const id = await createNote(newNote);
             const createdNote = {...newNote, id};
             notes.addNote(createdNote);

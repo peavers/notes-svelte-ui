@@ -1,26 +1,23 @@
 <!-- src/lib/components/ActionBar.svelte -->
 <script lang="ts">
-    import {createEventDispatcher} from 'svelte';
     import {fade} from 'svelte/transition';
     import type {Note} from '../types';
     import {notesService} from '../services/notesService';
 
     export let selectedNote: Note | null = null;
+    export let onNoteCreated: (note: Note) => void;
+    export let onNoteDeleted: (note: Note) => void;
+
     let hoveredAction: string | null = null;
     let error: string | null = null;
-
-    const dispatch = createEventDispatcher<{
-        noteCreated: Note;
-        noteDeleted: Note;
-    }>();
 
     async function handleCreate() {
         try {
             const newNote = await notesService.createNote();
-            dispatch('noteCreated', newNote);
+            onNoteCreated(newNote);
         } catch (e) {
             error = 'Failed to create note';
-            setTimeout(() => error = null, 3000); // Auto-dismiss error after 3s
+            setTimeout(() => error = null, 3000);
         }
     }
 
@@ -29,10 +26,10 @@
 
         try {
             await notesService.deleteNote(selectedNote);
-            dispatch('noteDeleted', selectedNote);
+            onNoteDeleted(selectedNote);
         } catch (e) {
             error = 'Failed to delete note';
-            setTimeout(() => error = null, 3000); // Auto-dismiss error after 3s
+            setTimeout(() => error = null, 3000);
         }
     }
 </script>

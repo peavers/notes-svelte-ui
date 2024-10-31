@@ -12,6 +12,16 @@ export async function findAllNotes(): Promise<Note[]> {
     return response.json();
 }
 
+export async function findAllNoteTitles(): Promise<Note[]> {
+    const response = await fetch(`${API_BASE}/notes/titles`);
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch notes');
+    }
+
+    return response.json();
+}
+
 export async function findNoteById(id: number): Promise<Note> {
     const response = await fetch(`${API_BASE}/notes/${id}`);
 

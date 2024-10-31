@@ -1,43 +1,43 @@
-<!-- src/lib/components/NoteEditor.svelte -->
 <script lang="ts">
-    import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+    import {onMount} from 'svelte';
     import Quill from 'quill';
-    import type { Note } from '../types';
-    import { debounce } from '../utils/debounce';
+    import type {Note} from '../types';
+    import {debounce} from '../utils/debounce';
     import NoteHeader from './NoteHeader.svelte';
-    import { notesService } from '../services/notesService';
+    import {notesService} from '../services/notesService';
 
     export let note: Note;
-
-    const dispatch = createEventDispatcher<{
-        noteUpdated: Note;
-        noteDeleted: Note;
-    }>();
+    export let onNoteUpdated: (note: Note) => void;
+    export let onNoteDeleted: (note: Note) => void;
 
     let quill: Quill;
     let editorElement: HTMLDivElement;
     let isInitialized = false;
     let error: string | null = null;
 
-    const debouncedUpdate = debounce(async (title: string, content: string) => {
+    // Create a single async update function
+    async function updateNote(title: string, content: string) {
         try {
-            const updatedNote = await notesService.updateNote(note.id, { title, content });
-            dispatch('noteUpdated', updatedNote);
+            const updatedNote = await notesService.updateNote(note.id, {title, content});
+            onNoteUpdated(updatedNote);
         } catch (e) {
             error = 'Failed to update note';
         }
-    }, 500);
+    }
 
-    async function handleTitleUpdate(event: CustomEvent<{ title: string }>) {
+    // Use the utility debounce function
+    const debouncedUpdate = debounce(updateNote, 500);
+
+    function handleTitleUpdate(newTitle: string) {
         if (quill) {
-            await debouncedUpdate(event.detail.title, quill.root.innerHTML);
+            debouncedUpdate(newTitle, quill.root.innerHTML);
         }
     }
 
     async function handleDelete() {
         try {
             await notesService.deleteNote(note);
-            dispatch('noteDeleted', note);
+            onNoteDeleted(note);
         } catch (e) {
             error = 'Failed to delete note';
         }
@@ -82,12 +82,6 @@
             if (selection) quill.setSelection(selection);
         }
     }
-
-    onDestroy(() => {
-        if (quill) {
-            quill = null;
-        }
-    });
 </script>
 
 {#if error}
@@ -98,7 +92,10 @@
 {/if}
 
 <div class="header-parent">
-    <NoteHeader {note} on:update={handleTitleUpdate} on:delete={handleDelete}/>
+    <NoteHeader
+            {note}
+            onTitleUpdate={handleTitleUpdate}
+    />
 </div>
 
 <div class="note-editor">
@@ -115,6 +112,7 @@
 
     .note-editor {
         position: relative;
+        max-width: 80vw;
     }
 
     :global(.ql-toolbar.ql-snow) {

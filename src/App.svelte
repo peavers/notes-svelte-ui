@@ -1,4 +1,3 @@
-<!-- src/lib/App.svelte -->
 <script lang="ts">
     import type {Note} from "./lib/types";
     import Sidebar from "./lib/components/SideBar.svelte";
@@ -11,8 +10,12 @@
         selectedNote = note;
     }
 
-    function handleNoteCreated(event: CustomEvent<Note>) {
-        selectedNote = event.detail;
+    function handleNoteCreated(note: Note) {
+        selectedNote = note;
+    }
+
+    function handleNoteUpdated(note: Note) {
+        selectedNote = note;
     }
 
     function handleNoteDeleted() {
@@ -32,7 +35,8 @@
                 {#if selectedNote}
                     <NoteEditor
                             note={selectedNote}
-                            on:noteDeleted={handleNoteDeleted}
+                            onNoteUpdated={handleNoteUpdated}
+                            onNoteDeleted={handleNoteDeleted}
                     />
                 {:else}
                     <div class="empty-state">
@@ -45,8 +49,8 @@
 
     <ActionBar
             {selectedNote}
-            on:noteCreated={handleNoteCreated}
-            on:noteDeleted={handleNoteDeleted}
+            onNoteCreated={handleNoteCreated}
+            onNoteDeleted={handleNoteDeleted}
     />
 </div>
 
