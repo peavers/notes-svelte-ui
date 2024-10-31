@@ -4,7 +4,6 @@
     import type {Note} from '../types';
     import {debounce} from '../utils/debounce';
     import NoteHeader from './NoteHeader.svelte';
-    import ActionBar from "./ActionBar.svelte";
 
     export let note: Note;
 
@@ -76,18 +75,32 @@
         }
     });
 </script>
-
-<NoteHeader {note} on:update={handleTitleUpdate}/>
+<div class="header-parent" data-testid="whatever">
+    <NoteHeader {note} on:update={handleTitleUpdate}/>
+</div>
 
 <div class="note-editor">
     <div bind:this={editorElement}></div>
 </div>
 
-<ActionBar {editorElement}/>
-
-
 <style>
+    .header-parent {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: rgba(255, 255, 255, 0.95);
+    }
+
     .note-editor {
         position: relative;
+    }
+
+    :global(.ql-toolbar.ql-snow) {
+        top: 87px;
+        position: sticky;
+        z-index: 3;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #3b82f6 !important;
+        margin-left: 15px;
     }
 </style>

@@ -35,7 +35,8 @@
 <style>
     .note-header {
         position: sticky;
-        background: white;
+        top: 0;
+        z-index: 3;
     }
 
     .title-container {
@@ -47,10 +48,10 @@
         font-weight: 600;
         color: var(--text-primary, #1e293b);
         border: none;
-        background: transparent;
         width: 100%;
         padding: 10px;
         border-bottom: 1px solid #eee;
+        background: rgba(255, 255, 255, 0.1) !important;
     }
 
     .title-input:focus {
@@ -60,8 +61,7 @@
     :global(.ql-toolbar.ql-snow) {
         border: none !important;
         padding: 10px 7px !important;
-        border-bottom: 1px solid #eee;
-        background: white;
+        background: rgba(255, 255, 255, 0.95);
     }
 
     :global(.ql-container.ql-snow) {

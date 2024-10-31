@@ -92,14 +92,13 @@
                     <NoteEditor note={selectedNote} on:update={handleUpdate} on:delete={handleDelete}/>
                 {:else}
                     <div class="empty-state">
-                        <p>Select a note from the sidebar or create a new one</p>
                     </div>
                 {/if}
             </div>
         </div>
     </main>
 
-<!--    <ActionBar {selectedNote} on:create={handleCreate} on:delete={handleDelete}/>-->
+    <ActionBar {selectedNote} on:create={handleCreate} on:delete={handleDelete}/>
 </div>
 
 <style>
@@ -123,6 +122,7 @@
         flex: 1;
         display: flex;
         flex-direction: column;
+        position: relative;
     }
 
     .empty-state {
