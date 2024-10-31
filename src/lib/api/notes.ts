@@ -24,7 +24,7 @@ export async function findNoteById(id: number): Promise<Note> {
 
 export async function searchNotes(query: string): Promise<SearchResult> {
     const response = await fetch(
-        `${API_BASE}/notes/search?query=${encodeURIComponent(query)}`,
+        `${API_BASE}/search?query=${encodeURIComponent(query)}`,
         {
             headers: {
                 'Accept': 'application/json',

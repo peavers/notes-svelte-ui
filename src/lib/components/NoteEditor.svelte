@@ -1,31 +1,45 @@
+<!-- src/lib/components/NoteEditor.svelte -->
 <script lang="ts">
-    import {createEventDispatcher, onDestroy, onMount} from 'svelte';
+    import { createEventDispatcher, onDestroy, onMount } from 'svelte';
     import Quill from 'quill';
-    import type {Note} from '../types';
-    import {debounce} from '../utils/debounce';
+    import type { Note } from '../types';
+    import { debounce } from '../utils/debounce';
     import NoteHeader from './NoteHeader.svelte';
+    import { notesService } from '../services/notesService';
 
     export let note: Note;
 
     const dispatch = createEventDispatcher<{
-        update: Omit<Note, 'id'>;
-        delete: Note;
+        noteUpdated: Note;
+        noteDeleted: Note;
     }>();
 
     let quill: Quill;
     let editorElement: HTMLDivElement;
     let isInitialized = false;
+    let error: string | null = null;
 
-    const debouncedUpdate = debounce((title: string, content: string) => {
-        dispatch('update', {
-            title,
-            content
-        });
+    const debouncedUpdate = debounce(async (title: string, content: string) => {
+        try {
+            const updatedNote = await notesService.updateNote(note.id, { title, content });
+            dispatch('noteUpdated', updatedNote);
+        } catch (e) {
+            error = 'Failed to update note';
+        }
     }, 500);
 
-    function handleTitleUpdate(event: CustomEvent<{ title: string }>) {
+    async function handleTitleUpdate(event: CustomEvent<{ title: string }>) {
         if (quill) {
-            debouncedUpdate(event.detail.title, quill.root.innerHTML);
+            await debouncedUpdate(event.detail.title, quill.root.innerHTML);
+        }
+    }
+
+    async function handleDelete() {
+        try {
+            await notesService.deleteNote(note);
+            dispatch('noteDeleted', note);
+        } catch (e) {
+            error = 'Failed to delete note';
         }
     }
 
@@ -75,8 +89,16 @@
         }
     });
 </script>
-<div class="header-parent" data-testid="whatever">
-    <NoteHeader {note} on:update={handleTitleUpdate}/>
+
+{#if error}
+    <div class="error" role="alert">
+        {error}
+        <button on:click={() => error = null}>Dismiss</button>
+    </div>
+{/if}
+
+<div class="header-parent">
+    <NoteHeader {note} on:update={handleTitleUpdate} on:delete={handleDelete}/>
 </div>
 
 <div class="note-editor">
@@ -102,5 +124,24 @@
         margin-bottom: 20px;
         border-bottom: 1px solid #3b82f6 !important;
         margin-left: 15px;
+    }
+
+    .error {
+        padding: 1rem;
+        background: #fee2e2;
+        color: #991b1b;
+        margin-bottom: 1rem;
+        border-radius: 0.375rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .error button {
+        background: none;
+        border: none;
+        color: #991b1b;
+        cursor: pointer;
+        font-weight: 500;
     }
 </style>
