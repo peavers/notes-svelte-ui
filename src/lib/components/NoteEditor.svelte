@@ -1,49 +1,33 @@
 <script lang="ts">
-    import {onMount} from 'svelte';
+    import {onDestroy, onMount} from 'svelte';
     import Quill from 'quill';
     import type {Note} from '../types';
-    import {debounce} from '../utils/debounce';
     import NoteHeader from './NoteHeader.svelte';
-    import {notesService} from '../services/notesService';
+    import {noteSyncService} from '../services/noteSyncService';
 
     export let note: Note;
     export let onNoteUpdated: (note: Note) => void;
-    export let onNoteDeleted: (note: Note) => void;
 
     let quill: Quill;
     let editorElement: HTMLDivElement;
     let isInitialized = false;
     let error: string | null = null;
+    let currentNoteId: number | null = null;
 
-    // Create a single async update function
-    async function updateNote(title: string, content: string) {
-        try {
-            const updatedNote = await notesService.updateNote(note.id, {title, content});
-            onNoteUpdated(updatedNote);
-        } catch (e) {
-            error = 'Failed to update note';
+    function handleContentChange() {
+        if (quill) {
+            noteSyncService.handleContentChange(quill.root.innerHTML, note.id);
         }
     }
-
-    // Use the utility debounce function
-    const debouncedUpdate = debounce(updateNote, 500);
 
     function handleTitleUpdate(newTitle: string) {
-        if (quill) {
-            debouncedUpdate(newTitle, quill.root.innerHTML);
-        }
-    }
-
-    async function handleDelete() {
-        try {
-            await notesService.deleteNote(note);
-            onNoteDeleted(note);
-        } catch (e) {
-            error = 'Failed to delete note';
-        }
+        noteSyncService.handleTitleChange(newTitle, note.id);
     }
 
     onMount(() => {
+        currentNoteId = note.id;
+        noteSyncService.initialize(note, onNoteUpdated);
+
         const toolbarOptions = [
             [{'font': []}],
             [{'header': [1, 2, 3, 4, 5, 6, false]}],
@@ -68,19 +52,31 @@
             quill.root.innerHTML = note.content;
         }
 
-        quill.on('text-change', () => {
-            debouncedUpdate(note.title, quill.root.innerHTML);
-        });
-
+        quill.on('text-change', handleContentChange);
         isInitialized = true;
     });
 
-    $: if (isInitialized && note) {
-        if (quill && note.content !== quill.root.innerHTML) {
-            const selection = quill.getSelection();
-            quill.root.innerHTML = note.content;
-            if (selection) quill.setSelection(selection);
-        }
+    onDestroy(() => {
+        noteSyncService.cleanup();
+    });
+
+    // Handle note switching
+    $: if (isInitialized && note?.id !== currentNoteId) {
+        console.log('Switching note from', currentNoteId, 'to', note.id);
+        currentNoteId = note.id;
+
+        noteSyncService.switchNote(note)
+            .then(() => {
+                if (quill && note.id === currentNoteId) {
+                    const selection = quill.getSelection();
+                    quill.root.innerHTML = note.content;
+                    if (selection) quill.setSelection(selection);
+                }
+            })
+            .catch(err => {
+                console.error('Error switching notes:', err);
+                error = 'Failed to switch notes';
+            });
     }
 </script>
 
@@ -92,10 +88,12 @@
 {/if}
 
 <div class="header-parent">
-    <NoteHeader
-            {note}
-            onTitleUpdate={handleTitleUpdate}
-    />
+    <div class="flex items-center justify-between px-4 gap-4 max-w-7xl mx-auto">
+        <NoteHeader
+                {note}
+                onTitleUpdate={handleTitleUpdate}
+        />
+    </div>
 </div>
 
 <div class="note-editor">
@@ -110,9 +108,23 @@
         background: rgba(255, 255, 255, 0.95);
     }
 
+    .sync-status {
+        padding: 8px;
+        min-width: 140px; /* Prevents layout shift between different states */
+        display: flex;
+        justify-content: flex-end;
+    }
+
     .note-editor {
         position: relative;
         max-width: 80vw;
+    }
+
+    .sync-status {
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     :global(.ql-toolbar.ql-snow) {

@@ -12,3 +12,15 @@ export interface SearchResult {
         rank: number;
     }>;
 }
+
+export interface SyncMessage {
+    type: 'sync';
+    note: Note;
+}
+
+export interface SyncResult {
+    type: 'syncComplete' | 'syncError';
+    noteId: number;
+    note?: Note;
+    error?: string;
+}
